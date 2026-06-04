@@ -2,13 +2,38 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import '/models/med_model.dart';
 
 @pragma('vm:entry-point')
-void notificationTapBackground(NotificationResponse response) {
-  // Handles "Med Taken" tap when app is in background/terminated
+void notificationTapBackground(NotificationResponse response) async {
   if (response.actionId == 'med_taken') {
-    // Dismiss the notification
-    FlutterLocalNotificationsPlugin().cancel(response.id ?? 0);
+    await _decrementQuantity(response.payload);
+    await FlutterLocalNotificationsPlugin().cancel(response.id ?? 0);
+  }
+}
+
+Future<void> _decrementQuantity(String? payload) async {
+  if (payload == null) return;
+  final id = int.tryParse(payload);
+  if (id == null) return;
+
+  final med = await MedicineDatabase.getMedicineById(id);
+  if (med == null) return;
+
+  if (med.quantity > 0) {
+    final updated = Med(
+      id: med.id,
+      name: med.name,
+      type: med.type,
+      color: med.color,
+      time: med.time,
+      duration: med.duration,
+      quantity: med.quantity - 1,  // decrement
+      ringtone: med.ringtone,
+      repeatReminderTime: med.repeatReminderTime,
+      note: med.note,
+    );
+    await MedicineDatabase.updateMedicine(updated);
   }
 }
 
@@ -40,10 +65,10 @@ class AlarmService {
 
     await _notifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (response) {
-        // Handles "Med Taken" tap when app is in foreground
+      onDidReceiveNotificationResponse: (response) async {
         if (response.actionId == 'med_taken') {
-          _notifications.cancel(response.id ?? 0);
+          await _decrementQuantity(response.payload);
+          await _notifications.cancel(response.id ?? 0);
         }
       },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
@@ -84,13 +109,12 @@ class AlarmService {
           enableVibration: true,
           visibility: NotificationVisibility.public,
           autoCancel: true,
-          // Action button shown on the notification
           actions: const [
             AndroidNotificationAction(
-              'med_taken',        // actionId — checked in the callbacks above
+              'med_taken',
               'Med Taken ✓',
-              cancelNotification: true,  // auto-dismisses on tap
-              showsUserInterface: false, // doesn't open the app
+              cancelNotification: true,
+              showsUserInterface: false,
             ),
           ],
         ),
@@ -99,6 +123,7 @@ class AlarmService {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
+      payload: id.toString(), // medicine id passed as payload
     );
   }
 
