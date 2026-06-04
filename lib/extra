@@ -1,0 +1,536 @@
+import 'package:flutter/material.dart';
+import 'package:medicine_reminder/models/med_model.dart';
+
+class EditMedicineScreen extends StatefulWidget {
+  final Med? medicine; // Made nullable with ?
+  final Function(Med) onSave;
+
+  const EditMedicineScreen({
+    super.key,
+    this.medicine, // Now optional
+    required this.onSave,
+  });
+
+  @override
+  State<EditMedicineScreen> createState() => _EditMedicineScreenState();
+}
+
+class _EditMedicineScreenState extends State<EditMedicineScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _quantityController;
+  late TextEditingController _noteController;
+  late String _selectedType;
+  late TimeOfDay _selectedTime;
+  late Color _selectedColor;
+  late DateTime _selectedDuration;
+  late String _selectedTiming;
+
+  final List<String> _medicineTypes = ['tablet', 'syrup', 'capsule', 'injection', 'other'];
+  final List<Color> _availableColors = [
+    const Color(0xFFFF6B6B),
+    const Color(0xFFFFD93D),
+    const Color(0xFF6BCB77),
+    const Color(0xFF4D96FF),
+    const Color(0xFF9D84B7),
+    const Color(0xFFFF9EAA),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // If medicine is null, use default values (for adding new medicine)
+    _nameController = TextEditingController(text: widget.medicine?.name ?? '');
+    _quantityController = TextEditingController(text: widget.medicine?.quantity.toString() ?? '');
+    _noteController = TextEditingController(text: widget.medicine?.note ?? '');
+    _selectedType = widget.medicine?.type ?? 'tablet';
+    _selectedTime = widget.medicine?.time ?? TimeOfDay.now();
+    _selectedColor = widget.medicine?.color ?? const Color(0xFFFF6B6B);
+    _selectedDuration = widget.medicine?.duration ?? DateTime.now().add(const Duration(days: 30));
+    _selectedTiming = 'After Breakfast';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.purple.shade600,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
+  }
+
+  void _saveMedicine() {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter medicine name'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final quantity = int.tryParse(_quantityController.text);
+    if (quantity == null || quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid quantity'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final updatedMedicine = Med(
+      id: widget.medicine?.id, // Preserve ID if editing
+      name: _nameController.text.trim(),
+      type: _selectedType,
+      time: _selectedTime,
+      quantity: quantity,
+      color: _selectedColor,
+      duration: _selectedDuration,
+      ringtone: 'default',
+      repeatReminderTime: _selectedTiming,
+      note: _noteController.text.trim(),
+    );
+
+    widget.onSave(updatedMedicine);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Check if we're adding or editing
+    final isEditing = widget.medicine != null;
+    
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1F2937)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          isEditing ? 'Edit Medicine' : 'Add Medicine', // Dynamic title
+          style: TextStyle(
+            color: Color(0xFF1F2937),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Medicine Name
+            const Text(
+              'Medicine Name',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: 'Enter medicine name',
+                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.purple.shade600, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Medicine Type
+            const Text(
+              'Medicine Type',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedType,
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.purple.shade600),
+                  items: _medicineTypes.map((String type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedType = newValue;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Time
+            const Text(
+              'Time',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _selectTime,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    Icon(Icons.access_time, color: Colors.purple.shade600),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Quantity
+            const Text(
+              'Quantity',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _quantityController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: 'Enter quantity',
+                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.purple.shade600, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Color Selection
+            const Text(
+              'Color',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: _availableColors.map((color) {
+                final isSelected = color == _selectedColor;
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedColor = color;
+                    });
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? Colors.black : Colors.transparent,
+                        width: 3,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, color: Colors.white)
+                        : null,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saveMedicine,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  isEditing ? 'Save Changes' : 'Add Medicine', // Dynamic button text
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            // ------------- FORM CHILDREN END
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+//alarm_service before
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:medicine_reminder/models/med_model.dart';
+
+class AlarmService {
+  static final FlutterLocalNotificationsPlugin _notifications = 
+      FlutterLocalNotificationsPlugin();
+  
+  static bool _initialized = false;
+
+  // Initialize the notification service
+  static Future<void> initialize() async {
+    if (_initialized) return;
+    
+    tz.initializeTimeZones();
+    
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTap,
+    );
+
+    // Request notification permissions (Android 13+)
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+
+    // Request exact alarm permission (Android 12+)
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestExactAlarmsPermission();
+
+    _initialized = true;
+  }
+
+  // Handle notification tap
+  static void _onNotificationTap(NotificationResponse response) {
+    print('Notification tapped: ${response.payload}');
+  }
+
+  // Schedule alarm for a medicine
+  static Future<void> scheduleAlarm(Med medicine) async {
+    await initialize();
+    
+    final now = DateTime.now();
+    final scheduledTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      medicine.time.hour,
+      medicine.time.minute,
+    );
+
+    // If the time has passed today, schedule for tomorrow
+    final alarmTime = scheduledTime.isBefore(now)
+        ? scheduledTime.add(const Duration(days: 1))
+        : scheduledTime;
+
+    await _notifications.zonedSchedule(
+      medicine.id ?? 0,
+      'Medicine Reminder',
+      'Time to take ${medicine.name}',
+      tz.TZDateTime.from(alarmTime, tz.local),
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'medicine_alarm',
+          'Medicine Alarms',
+          channelDescription: 'Alarms for medicine reminders',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          ongoing: true,
+          autoCancel: false,
+          fullScreenIntent: true,
+          category: AndroidNotificationCategory.alarm,
+        ),
+        iOS: const DarwinNotificationDetails(
+          sound: 'alarm.aiff',
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+      payload: medicine.id.toString(),
+    );
+
+    print('Alarm scheduled for ${medicine.name} at ${medicine.time.hour}:${medicine.time.minute.toString().padLeft(2, '0')}');
+  }
+
+  // Cancel alarm for a medicine
+  static Future<void> cancelAlarm(int medicineId) async {
+    await initialize();
+    await _notifications.cancel(medicineId);
+    print('Alarm cancelled for medicine ID: $medicineId');
+  }
+
+  // Snooze alarm (reschedule after specified minutes)
+  static Future<void> snoozeAlarm(Med medicine, int minutes) async {
+    await initialize();
+    
+    final snoozeTime = DateTime.now().add(Duration(minutes: minutes));
+
+    await _notifications.zonedSchedule(
+      medicine.id ?? 0,
+      'Medicine Reminder (Snoozed)',
+      'Time to take ${medicine.name}',
+      tz.TZDateTime.from(snoozeTime, tz.local),
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'medicine_alarm',
+          'Medicine Alarms',
+          channelDescription: 'Alarms for medicine reminders',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          ongoing: true,
+          autoCancel: false,
+          fullScreenIntent: true,
+          category: AndroidNotificationCategory.alarm,
+        ),
+        iOS: const DarwinNotificationDetails(
+          sound: 'alarm.aiff',
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: medicine.id.toString(),
+    );
+
+    print('Alarm snoozed for ${medicine.name} for $minutes minutes');
+  }
+
+  // Cancel all alarms
+  static Future<void> cancelAllAlarms() async {
+    await initialize();
+    await _notifications.cancelAll();
+  }
+
+  // Check if exact alarm permission is granted
+  static Future<bool> canScheduleExactAlarms() async {
+    final android = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      return await android.canScheduleExactNotifications() ?? false;
+    }
+    return false;
+  }
+}
