@@ -4,7 +4,13 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 
 @pragma('vm:entry-point')
-void notificationTapBackground(NotificationResponse response) {}
+void notificationTapBackground(NotificationResponse response) {
+  // Handles "Med Taken" tap when app is in background/terminated
+  if (response.actionId == 'med_taken') {
+    // Dismiss the notification
+    FlutterLocalNotificationsPlugin().cancel(response.id ?? 0);
+  }
+}
 
 class AlarmService {
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -34,7 +40,12 @@ class AlarmService {
 
     await _notifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (response) {},
+      onDidReceiveNotificationResponse: (response) {
+        // Handles "Med Taken" tap when app is in foreground
+        if (response.actionId == 'med_taken') {
+          _notifications.cancel(response.id ?? 0);
+        }
+      },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
@@ -62,7 +73,7 @@ class AlarmService {
       title,
       body,
       tz.TZDateTime.from(time, tz.local),
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           'medicine_alarm_channel',
           'Medicine Alarms',
@@ -73,6 +84,15 @@ class AlarmService {
           enableVibration: true,
           visibility: NotificationVisibility.public,
           autoCancel: true,
+          // Action button shown on the notification
+          actions: const [
+            AndroidNotificationAction(
+              'med_taken',        // actionId — checked in the callbacks above
+              'Med Taken ✓',
+              cancelNotification: true,  // auto-dismisses on tap
+              showsUserInterface: false, // doesn't open the app
+            ),
+          ],
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
