@@ -3,54 +3,15 @@ import 'med_cards.dart';
 import '/models/med_model.dart';
 import 'add_medicine_page.dart';
 import 'next_med.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
-import 'alarm_screen.dart';
 import 'services/alarm_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //await AlarmService.initialize(navigatorKey);
   tz.initializeTimeZones();
-
-  const androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const iosSettings = DarwinInitializationSettings();
-
-  const initSettings = InitializationSettings(
-    android: androidSettings,
-    iOS: iosSettings,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    initSettings,
-    onDidReceiveNotificationResponse: (response) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => const AlarmScreen(),
-        ),
-      );
-    },
-  );
-
-  // Android 13+
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.requestNotificationsPermission();
-
-  // Android 12+
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.requestExactAlarmsPermission();
-
+  await AlarmService.initialize(navigatorKey);
   runApp(const VelocityApp());
 }
 
@@ -106,7 +67,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 const Text(
                   'Velocity',
                   style: TextStyle(
@@ -125,7 +85,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // Low Stock Notification from Database
+                // Low Stock Notification
                 FutureBuilder<List<Med>>(
                   key: ValueKey('low_stock_$_refreshCounter'),
                   future: MedicineDatabase.getLowStockMedicines(),
@@ -133,14 +93,11 @@ class _HomePageState extends State<HomePage> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const SizedBox.shrink();
                     }
-
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const SizedBox.shrink();
                     }
-
                     final lowStockMeds = snapshot.data!;
                     final now = DateTime.now();
-
                     return Container(
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 20),
@@ -157,11 +114,8 @@ class _HomePageState extends State<HomePage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: Colors.orange.shade700,
-                            size: 24,
-                          ),
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.orange.shade700, size: 24),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -189,7 +143,7 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                           ),
@@ -199,7 +153,7 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
 
-                // Next Medicine Card from Database
+                // Next Medicine Card
                 FutureBuilder<Med?>(
                   future: MedicineDatabase.getNextMedicine(),
                   builder: (context, snapshot) {
@@ -211,16 +165,12 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        child: const Center(child: CircularProgressIndicator()),
                       );
                     }
-
                     if (snapshot.hasError || !snapshot.hasData) {
                       return const SizedBox.shrink();
                     }
-
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 20),
                       child: buildNextMedicineCard(snapshot.data!),
@@ -249,11 +199,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                       },
-                      icon: Icon(
-                        Icons.calendar_today,
-                        color: Colors.purple.shade600,
-                        size: 22,
-                      ),
+                      icon: Icon(Icons.calendar_today,
+                          color: Colors.purple.shade600, size: 22),
                     ),
                   ],
                 ),
@@ -265,19 +212,12 @@ class _HomePageState extends State<HomePage> {
                   future: MedicineDatabase.getAllMedicines(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
-                      return Center(
-                        child: Text('Error: ${snapshot.error}'),
-                      );
+                      return Center(child: Text('Error: ${snapshot.error}'));
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text('No medicines added yet'),
-                      );
+                      return const Center(child: Text('No medicines added yet'));
                     }
-
                     return buildMedicationsSection(
                       medicines: snapshot.data!,
                       onMedicineListChanged: _refreshMedicineList,
@@ -298,10 +238,7 @@ class _HomePageState extends State<HomePage> {
                   child: Text(
                     'Important: Press "Med Taken" only when you\'ve actually taken it. This is for your health.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade900,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
                   ),
                 ),
 
@@ -324,13 +261,10 @@ class _HomePageState extends State<HomePage> {
         },
         backgroundColor: Colors.purple.shade600,
         icon: const Icon(Icons.add, size: 28),
-        label: const Text(
-          'Add',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        label: const Text('Add',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         elevation: 8,
       ),
     );
   }
 }
-//successful git connection
