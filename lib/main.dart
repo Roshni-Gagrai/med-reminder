@@ -15,7 +15,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AlarmService.initialize(navigatorKey);
+  //await AlarmService.initialize(navigatorKey);
   tz.initializeTimeZones();
 
   const androidSettings =
