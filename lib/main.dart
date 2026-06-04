@@ -173,7 +173,7 @@ class _HomePageState extends State<HomePage> {
                     }
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 20),
-                      child: buildNextMedicineCard(snapshot.data!),
+                      child: buildNextMedicineCard(snapshot.data!, onMedTaken: _refreshMedicineList),
                     );
                   },
                 ),
