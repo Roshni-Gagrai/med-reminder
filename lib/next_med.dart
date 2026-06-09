@@ -33,6 +33,7 @@ class _NextMedicineCardState extends State<NextMedicineCard> {
       ringtone: med.ringtone,
       repeatReminderTime: med.repeatReminderTime,
       note: med.note,
+      lastTakenDate: DateTime.now(),
     );
 
     await MedicineDatabase.updateMedicine(updated);

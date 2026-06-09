@@ -155,6 +155,7 @@ class _HomePageState extends State<HomePage> {
 
                 // Next Medicine Card
                 FutureBuilder<Med?>(
+                  key: ValueKey('next_med_$_refreshCounter'),
                   future: MedicineDatabase.getNextMedicine(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {

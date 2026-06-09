@@ -13,6 +13,7 @@ class Med {
   final String ringtone;
   final String repeatReminderTime;
   final String note;
+  final DateTime? lastTakenDate;
 
   Med({
     required this.name,
@@ -25,6 +26,7 @@ class Med {
     required this.duration,
     this.note = '',
     this.id,
+    this.lastTakenDate,
   });
 
   // Convert Med to JSON (excludes id for auto-increment on insert)
@@ -39,6 +41,7 @@ class Med {
       'repeatReminderTime': repeatReminderTime,
       'duration': duration.toIso8601String(), // Store DateTime as ISO8601 string
       'note': note,
+      'lastTakenDate': lastTakenDate?.toIso8601String(),
     };
     
     if (includeId && id != null) {
@@ -75,7 +78,12 @@ class Med {
       repeatReminderTime: map['repeatReminderTime'],
       duration: duration,
       note: map['note'] ?? '',
+      lastTakenDate: map['lastTakenDate'] != null
+    ? DateTime.parse(map['lastTakenDate'] as String)
+    : null,
     );
+
+    
   }
 }
 
@@ -129,7 +137,7 @@ static Future<List<Med>> getLowStockMedicines() async {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $tableName (
@@ -142,9 +150,17 @@ static Future<List<Med>> getLowStockMedicines() async {
             ringtone TEXT NOT NULL,
             repeatReminderTime TEXT NOT NULL,
             duration TEXT NOT NULL,
-            note TEXT
+            note TEXT,
+            lastTakenDate TEXT
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'ALTER TABLE $tableName ADD COLUMN lastTakenDate TEXT'
+          );
+        }
       },
     );
   }
@@ -214,49 +230,52 @@ static Future<List<Med>> getLowStockMedicines() async {
 
   // 5. Get next medicine to take based on current time
   static Future<Med?> getNextMedicine() async {
-    final medicines = await getAllMedicines();
-    
-    if (medicines.isEmpty) {
-      return null;
-    }
+  final medicines = await getAllMedicines();
+  if (medicines.isEmpty) return null;
 
-    final now = DateTime.now();
-    final currentTime = TimeOfDay.fromDateTime(now);
-    
-    // Parse and sort medicines by time
-    final medicinesWithParsedTime = medicines.map((med) {
-      try {
-        return {
-          'medicine': med,
-          'timeOfDay': med.time,
-        };
-      } catch (e) {
-        return null;
-      }
-    }).whereType<Map<String, dynamic>>().toList();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final currentMinutes = now.hour * 60 + now.minute;
 
-    if (medicinesWithParsedTime.isEmpty) {
-      return null;
-    }
-
-    // Sort by time
-    medicinesWithParsedTime.sort((a, b) {
-      final timeA = a['timeOfDay'] as TimeOfDay;
-      final timeB = b['timeOfDay'] as TimeOfDay;
-      return _compareTimeOfDay(timeA, timeB);
-    });
-
-    // Find the next medicine (time >= current time)
-    for (final item in medicinesWithParsedTime) {
-      final medTime = item['timeOfDay'] as TimeOfDay;
-      if (_compareTimeOfDay(medTime, currentTime) >= 0) {
-        return item['medicine'] as Med;
-      }
-    }
-
-    // If no medicine found for today, return the first one (for tomorrow)
-    return medicinesWithParsedTime.first['medicine'] as Med;
+  print('--- getNextMedicine called ---');
+  print('now: $now');
+  for (final med in medicines) {
+    print('${med.name} | lastTakenDate: ${med.lastTakenDate}');
   }
+
+  final notYetTaken = medicines.where((med) {
+    final takenToday = med.lastTakenDate != null &&
+        DateTime(
+          med.lastTakenDate!.year,
+          med.lastTakenDate!.month,
+          med.lastTakenDate!.day,
+        ) == today;
+    print('${med.name} takenToday: $takenToday');
+    return !takenToday;
+  }).toList();
+
+  print('notYetTaken count: ${notYetTaken.length}');
+
+  medicines.sort((a, b) => _compareTimeOfDay(a.time, b.time));
+
+  if (notYetTaken.isEmpty) {
+    print('returning medicines.first: ${medicines.first.name}');
+    return medicines.first;
+  }
+
+  notYetTaken.sort((a, b) => _compareTimeOfDay(a.time, b.time));
+
+  for (final med in notYetTaken) {
+    final medMinutes = med.time.hour * 60 + med.time.minute;
+    if (medMinutes >= currentMinutes) {
+      print('returning: ${med.name}');
+      return med;
+    }
+  }
+
+  print('all times passed, returning: ${medicines.first.name}');
+  return medicines.first;
+}
 
   // Helper function to compare TimeOfDay
   static int _compareTimeOfDay(TimeOfDay time1, TimeOfDay time2) {
