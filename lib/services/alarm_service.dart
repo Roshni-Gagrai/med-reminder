@@ -2,39 +2,49 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
-import '/models/med_model.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) async {
   if (response.actionId == 'med_taken') {
-    await _decrementQuantity(response.payload);
+    await _decrementQuantityBackground(response.payload);
     await FlutterLocalNotificationsPlugin().cancel(response.id ?? 0);
   }
 }
 
-Future<void> _decrementQuantity(String? payload) async {
+@pragma('vm:entry-point')
+Future<void> _decrementQuantityBackground(String? payload) async {
   if (payload == null) return;
   final id = int.tryParse(payload);
   if (id == null) return;
 
-  final med = await MedicineDatabase.getMedicineById(id);
-  if (med == null) return;
+  final dbPath = await getDatabasesPath();
+  final path = join(dbPath, 'medicines.db');
+  final db = await openDatabase(path);
 
-  if (med.quantity > 0) {
-    final updated = Med(
-      id: med.id,
-      name: med.name,
-      type: med.type,
-      color: med.color,
-      time: med.time,
-      duration: med.duration,
-      quantity: med.quantity - 1,  // decrement
-      ringtone: med.ringtone,
-      repeatReminderTime: med.repeatReminderTime,
-      note: med.note,
-    );
-    await MedicineDatabase.updateMedicine(updated);
+  final maps = await db.query(
+    'medicines',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+
+  if (maps.isEmpty) {
+    await db.close();
+    return;
   }
+
+  final quantity = maps.first['quantity'] as int;
+  if (quantity > 0) {
+    await db.update(
+      'medicines',
+      {'quantity': quantity - 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  await db.close();
 }
 
 class AlarmService {
@@ -67,7 +77,7 @@ class AlarmService {
       initSettings,
       onDidReceiveNotificationResponse: (response) async {
         if (response.actionId == 'med_taken') {
-          await _decrementQuantity(response.payload);
+          await _decrementQuantityBackground(response.payload);
           await _notifications.cancel(response.id ?? 0);
         }
       },
