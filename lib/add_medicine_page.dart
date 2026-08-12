@@ -42,6 +42,15 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
     'Custom Time',
   ];
 
+  final Map<String, TimeOfDay> timingToTime = {
+  'Before Breakfast': const TimeOfDay(hour: 7, minute: 30),
+  'After Breakfast':  const TimeOfDay(hour: 8, minute: 30),
+  'Before Lunch':     const TimeOfDay(hour: 12, minute: 0),
+  'After Lunch':      const TimeOfDay(hour: 13, minute: 0),
+  'Before Dinner':    const TimeOfDay(hour: 19, minute: 0),
+  'After Dinner':     const TimeOfDay(hour: 20, minute: 0),
+};
+
   void _submitForm() async {
     if (_nameController.text.isEmpty ||
         _quantityController.text.isEmpty ||
@@ -260,6 +269,10 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                           setState(() => selectedTiming = value!);
                           if (value == 'Custom Time') {
                             _selectTime();
+                          }
+                          else{
+                            // Auto-set time based on selection
+                            selectedTime = timingToTime[value] ?? selectedTime;
                           }
                         },
                       ),

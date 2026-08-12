@@ -116,23 +116,35 @@ Widget buildMedicationsSection({
                         builder: (context) => EditMedicineScreen(
                           medicine: medicines[index],
                           onSave: (updatedMedicine) async {
-                            try {
-                              await MedicineDatabase.updateMedicine(updatedMedicine);
-            
-                              //await AlarmService.scheduleAlarm(updatedMedicine);
-                              
-                              onMedicineListChanged();
-                              
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Medicine updated successfully'),
-                                    backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
+                          try {
+                            await MedicineDatabase.updateMedicine(updatedMedicine);
+
+                            // Cancel old alarm and reschedule with new time
+                            await AlarmService.cancelAlarm(updatedMedicine.id!);
+                            final now = DateTime.now();
+                            final scheduledTime = DateTime(
+                              now.year, now.month, now.day,
+                              updatedMedicine.time.hour,
+                              updatedMedicine.time.minute,
+                            );
+                            await AlarmService.scheduleDailyAlarm(
+                              id: updatedMedicine.id!,
+                              time: scheduledTime,
+                              title: 'Medicine Reminder',
+                              body: 'Time to take ${updatedMedicine.name}',
+                            );
+
+                            onMedicineListChanged();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Medicine updated successfully'),
+                                  backgroundColor: Colors.green,
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

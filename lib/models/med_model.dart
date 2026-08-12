@@ -112,12 +112,9 @@ static Future<List<Med>> getLowStockMedicines() async {
     final med = Med.fromMap(map);
     final daysRemaining = med.duration.difference(now).inDays;
     
-    // Show in low stock if:
-    // 1. Quantity is less than 3 AND duration is more than 3 days away
-    // OR
-    // 2. Quantity will run out before duration ends (considering daily intake)
-    if ((med.quantity < 3 && daysRemaining > 3) || 
-        (med.quantity < daysRemaining)) {
+    // Only show if quantity is less than 5
+    // AND quantity won't last the remaining days
+    if (med.quantity < 5 && med.quantity < daysRemaining) {
       lowStockMeds.add(med);
     }
   }

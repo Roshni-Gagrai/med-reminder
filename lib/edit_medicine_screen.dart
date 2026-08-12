@@ -26,6 +26,15 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
   late DateTime _selectedDuration;
   late String _selectedTiming;
 
+  final Map<String, TimeOfDay> _timingToTime = {
+  'Before Breakfast': const TimeOfDay(hour: 7, minute: 30),
+  'After Breakfast':  const TimeOfDay(hour: 8, minute: 30),
+  'Before Lunch':     const TimeOfDay(hour: 12, minute: 0),
+  'After Lunch':      const TimeOfDay(hour: 13, minute: 0),
+  'Before Dinner':    const TimeOfDay(hour: 19, minute: 0),
+  'After Dinner':     const TimeOfDay(hour: 20, minute: 0),
+};
+
   final List<String> _medicineTypes = ['tablet', 'syrup', 'capsule', 'injection', 'other'];
   final List<Color> _availableColors = [
     const Color(0xFFFF6B6B),
@@ -300,6 +309,9 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
                           if (value == 'Custom Time') {
                             _selectTime();
                           }
+                          else {
+      _selectedTime = _timingToTime[value] ?? _selectedTime;
+    }
                         },
                       ),
                       const SizedBox(height: 20),
