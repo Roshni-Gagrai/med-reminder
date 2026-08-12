@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'edit_medicine_screen.dart';
 import 'models/med_model.dart';
+import 'services/alarm_service.dart';
 
 Widget buildMedicationsSection({
   required List<Med> medicines,
@@ -80,7 +81,7 @@ Widget buildMedicationsSection({
                               color: Color(0xFF6B7280),
                             ),
                           ),
-                          if (med.quantity < 10) ...[
+                          
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -100,7 +101,7 @@ Widget buildMedicationsSection({
                                 ),
                               ),
                             ),
-                          ],
+                          
                         ],
                       ),
                     ],
@@ -236,7 +237,7 @@ void _showDeleteDialog(BuildContext context, Med medicine, Function() onMedicine
             onPressed: () async {
               try {
                 // Cancel alarm first
-                
+                await AlarmService.cancelAlarm(medicine.id!);
                 
                 // Delete from database
                 await MedicineDatabase.deleteMedicine(medicine.id!);
