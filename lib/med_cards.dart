@@ -305,8 +305,12 @@ IconData _getIconForType(String type) {
       return Icons.local_pharmacy;
     case 'syrup':
       return Icons.local_drink;
+    case 'capsule':
+      return Icons.medication;
     case 'injection':
       return Icons.medical_services;
+    case 'other':
+      return Icons.healing;
     default:
       return Icons.local_pharmacy;
   }

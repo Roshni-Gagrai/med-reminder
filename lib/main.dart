@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Velocity',
+                  'PillPal',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
