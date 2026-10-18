@@ -123,9 +123,11 @@ static Future<List<Med>> getLowStockMedicines() async {
 }
   // Get database instance
   static Future<Database> getDatabase() async {
-    _database ??= await _initDatabase();
-    return _database!;
+  if (_database == null || !_database!.isOpen) {
+    _database = await _initDatabase();
   }
+  return _database!;
+}
 
   // Initialize database
   static Future<Database> _initDatabase() async {

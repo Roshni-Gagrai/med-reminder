@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:medicine_reminder/models/med_model.dart';
-import '../services/alarm_service.dart';
+import 'services/notification_service.dart';
 
 class AddMedicinePage extends StatefulWidget {
   final VoidCallback onAdded;
@@ -20,7 +20,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
   String selectedType = 'tablet';
   Color selectedColor = const Color(0xFFFF6B6B);
   String selectedTiming = 'After Breakfast';
-  TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 30);
   DateTime? selectedDuration;
 
   final List<String> types = ['tablet', 'syrup', 'capsule', 'injection', 'other'];
@@ -92,7 +92,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
         scheduledTime = scheduledTime.add(const Duration(days: 1));
       }
 
-      await AlarmService.scheduleDailyAlarm(
+      await NotificationService.scheduleDailyAlarm(
         id: medicineId,
         time: scheduledTime,
         title: 'Medicine Reminder',
@@ -104,7 +104,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Medicine added and alarm scheduled'),
+            content: Text('Medicine added and reminder scheduled'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),

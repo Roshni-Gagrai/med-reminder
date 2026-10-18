@@ -101,7 +101,9 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
   Future<void> _selectDuration() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDuration,
+      initialDate: _selectedDuration.isBefore(DateTime.now())
+        ? DateTime.now()
+        : _selectedDuration,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
@@ -134,7 +136,7 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
     }
 
     final quantity = int.tryParse(_quantityController.text);
-    if (quantity == null || quantity <= 0) {
+    if (quantity == null || quantity < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid quantity'),
@@ -296,7 +298,7 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
                       // Timing
                       _buildLabel('Timing'),
                       DropdownButtonFormField<String>(
-                        value: _selectedTiming,
+                        initialValue: _selectedTiming,
                         decoration: _inputDecoration(''),
                         items: _timings.map((timing) {
                           return DropdownMenuItem(

@@ -9,7 +9,6 @@ import 'package:path/path.dart';
 void notificationTapBackground(NotificationResponse response) async {
   if (response.actionId == 'med_taken') {
     await _decrementQuantityBackground(response.payload);
-    await FlutterLocalNotificationsPlugin().cancel(response.id ?? 0);
   }
 }
 
@@ -30,7 +29,6 @@ Future<void> _decrementQuantityBackground(String? payload) async {
   );
 
   if (maps.isEmpty) {
-    await db.close();
     return;
   }
 
@@ -43,11 +41,9 @@ Future<void> _decrementQuantityBackground(String? payload) async {
       whereArgs: [id],
     );
   }
-
-  await db.close();
 }
 
-class AlarmService {
+class NotificationService  {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
@@ -78,7 +74,6 @@ class AlarmService {
       onDidReceiveNotificationResponse: (response) async {
         if (response.actionId == 'med_taken') {
           await _decrementQuantityBackground(response.payload);
-          await _notifications.cancel(response.id ?? 0);
         }
       },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,

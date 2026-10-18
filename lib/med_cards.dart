@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'edit_medicine_screen.dart';
 import 'models/med_model.dart';
-import 'services/alarm_service.dart';
+import 'services/notification_service.dart';
 
 Widget buildMedicationsSection({
   required List<Med> medicines,
@@ -120,14 +120,17 @@ Widget buildMedicationsSection({
                             await MedicineDatabase.updateMedicine(updatedMedicine);
 
                             // Cancel old alarm and reschedule with new time
-                            await AlarmService.cancelAlarm(updatedMedicine.id!);
+                            await NotificationService.cancelAlarm(updatedMedicine.id!);
                             final now = DateTime.now();
-                            final scheduledTime = DateTime(
+                            var scheduledTime = DateTime(
                               now.year, now.month, now.day,
                               updatedMedicine.time.hour,
                               updatedMedicine.time.minute,
                             );
-                            await AlarmService.scheduleDailyAlarm(
+                            if (scheduledTime.isBefore(now)) {
+                              scheduledTime = scheduledTime.add(const Duration(days: 1));
+                            }
+                            await NotificationService.scheduleDailyAlarm(
                               id: updatedMedicine.id!,
                               time: scheduledTime,
                               title: 'Medicine Reminder',
@@ -222,7 +225,7 @@ void _showDeleteDialog(BuildContext context, Med medicine, Function() onMedicine
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'This will also cancel all alarms for this medicine.',
+                      'This will also cancel all reminders for this medicine.',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.red.shade900,
@@ -249,7 +252,7 @@ void _showDeleteDialog(BuildContext context, Med medicine, Function() onMedicine
             onPressed: () async {
               try {
                 // Cancel alarm first
-                await AlarmService.cancelAlarm(medicine.id!);
+                await NotificationService.cancelAlarm(medicine.id!);
                 
                 // Delete from database
                 await MedicineDatabase.deleteMedicine(medicine.id!);

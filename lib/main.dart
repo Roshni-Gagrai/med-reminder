@@ -4,14 +4,14 @@ import '/models/med_model.dart';
 import 'add_medicine_page.dart';
 import 'next_med.dart';
 import 'package:timezone/data/latest.dart' as tz;
-import 'services/alarm_service.dart';
+import 'services/notification_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); //connect to the phone first
   tz.initializeTimeZones();
-  await AlarmService.initialize(navigatorKey); //talks to the phone (notifications, permissions)
+  await NotificationService.initialize(navigatorKey); //talks to the phone (notifications, permissions)
   runApp(const VelocityApp());
 }
 
@@ -41,8 +41,27 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver{
   int _refreshCounter = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshMedicineList();
+    }
+  }
 
   void _refreshMedicineList() {
     setState(() {
