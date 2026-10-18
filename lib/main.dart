@@ -9,9 +9,9 @@ import 'services/alarm_service.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); //connect to the phone first
   tz.initializeTimeZones();
-  await AlarmService.initialize(navigatorKey);
+  await AlarmService.initialize(navigatorKey); //talks to the phone (notifications, permissions)
   runApp(const VelocityApp());
 }
 
